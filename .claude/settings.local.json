@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(conda create:*)",
+      "Bash(/opt/anaconda3/envs/LlamaIndex-Proyecto-Kommo/bin/pip install:*)",
+      "Bash(/opt/anaconda3/envs/LlamaIndex-Proyecto-Kommo/bin/python3 support_tools/get_pipelines.py)",
+      "Bash(/opt/anaconda3/envs/LlamaIndex-Proyecto-Kommo/bin/python3 support_tools/get_custom_fields.py)"
+    ]
+  }
+}
