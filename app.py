@@ -10,6 +10,7 @@ from kommo import parse_kommo_webhook, update_lead_with_response, launch_salesbo
 sys.path.append(os.path.join(os.path.dirname(__file__), "tools"))
 from tools.move_lead_to_Toma_de_Decision import move_lead_to_Toma_de_Decision
 from tools.move_lead_to_Discusion_de_Contrato import move_lead_to_Discusion_de_Contrato
+from tools.move_lead_to_Lead_Cerrado import move_lead_to_Lead_Cerrado
 from tools.update_data_Marca_de_Interes import update_data_Marca_de_Interes
 from tools.update_data_Metodo_de_Pago import update_data_Metodo_de_Pago
 
@@ -49,14 +50,19 @@ def is_duplicate(lead_id: str, text: str) -> bool:
 async def process_message(message_text: str, lead_id: str):
     """Procesa el mensaje en segundo plano: genera respuesta con el agente, actualiza lead, lanza salesbot."""
     try:
-        # 1. Guardar mensaje del usuario en el historial
+        # 1. Verificar switch de IA antes de procesar
+        if not get_switch_status(lead_id):
+            print(f"🔴 Switch IA DESACTIVADO para lead {lead_id}")
+            return
+
+        # 2. Guardar mensaje del usuario en el historial
         save_message(lead_id, "user", message_text)
 
-        # 2. Obtener historial y consultar al agente
+        # 3. Obtener historial y consultar al agente
         history_str = format_history_for_prompt(lead_id)
         response_text = await ask_agent(llm, retrieval_tool, message_text, history_str)
 
-        # 3. Parsear tags y limpiar respuesta
+        # 4. Parsear tags y limpiar respuesta
         tags = parse_and_clean_tags(response_text)
         clean_response = tags["clean_response"]
 
@@ -66,7 +72,10 @@ async def process_message(message_text: str, lead_id: str):
         save_message(lead_id, "assistant", clean_response)
 
         # 5. Ejecutar acciones según tags detectados
-        if tags["is_contract"]:
+        if tags["is_closed"]:
+            print(f"🏁 COMPRA CERRADA detectada para lead {lead_id}")
+            move_lead_to_Lead_Cerrado(int(lead_id))
+        elif tags["is_contract"]:
             print(f"📝 DISCUSIÓN DE CONTRATO detectada para lead {lead_id}")
             move_lead_to_Discusion_de_Contrato(int(lead_id))
         elif tags["is_interested"]:
@@ -79,8 +88,12 @@ async def process_message(message_text: str, lead_id: str):
         if tags["pago"]:
             update_data_Metodo_de_Pago(int(lead_id), tags["pago"])
 
-        # 6. Actualizar lead en Kommo y lanzar salesbot
-        update_lead_with_response(lead_id, clean_response)
+        # 6. Actualizar lead en Kommo y lanzar salesbot solo si el update fue exitoso
+        updated = update_lead_with_response(lead_id, clean_response)
+        if not updated:
+            print(f"❌ No se pudo actualizar el lead {lead_id}. Se omite lanzamiento de Salesbot.")
+            return
+
         print(f"✅ Lead {lead_id} actualizado: respuesta guardada + switch activado")
 
         launch_salesbot(lead_id)
@@ -94,6 +107,14 @@ async def root():
     return {"status": "ok", "message": "Kommo AI Chatbot activo"}
 
 
+@app.get("/webhook/kommo")
+async def kommo_webhook_info():
+    return {
+        "status": "ok",
+        "message": "Endpoint activo. Kommo debe enviar POST form-urlencoded a esta URL."
+    }
+
+
 @app.post("/webhook/kommo")
 async def kommo_webhook(request: Request, background_tasks: BackgroundTasks):
     body = await request.body()
@@ -102,28 +123,40 @@ async def kommo_webhook(request: Request, background_tasks: BackgroundTasks):
 
     message_text = data.get("text", "")
     lead_id = data.get("lead_id")
+    chat_id = data.get("chat_id")
+    entity_type = data.get("entity_type")
     message_type = data.get("type", "")
-    created_by = data.get("created_by")
+    author_type = data.get("author_type")
 
-    if message_type and message_type == "outgoing":
+    print(
+        "🧾 Webhook parseado: "
+        f"lead_id={lead_id}, chat_id={chat_id}, entity_type={entity_type}, "
+        f"type={message_type}, author_type={author_type}, "
+        f"text_len={len(message_text.strip()) if message_text else 0}"
+    )
+
+    # Solo procesar mensajes entrantes de contactos (clientes).
+    # Salesbot, agentes humanos y cualquier otro remitente se ignoran.
+    if message_type == "outgoing":
+        print("⏭️ Webhook ignorado: outgoing message")
         return {"status": "ignored", "reason": "outgoing message"}
 
-    if created_by and str(created_by) != "0":
-        return {"status": "ignored", "reason": "system message"}
+    # Ignorar mensajes de agentes humanos y bots. Clientes llegan como "contact" o "external".
+    if author_type and str(author_type).lower() in ("user", "bot"):
+        print(f"⏭️ Webhook ignorado: author_type={author_type}")
+        return {"status": "ignored", "reason": f"non-contact author: {author_type}"}
 
     if not message_text or not lead_id:
+        print("⏭️ Webhook ignorado: missing data")
         return {"status": "ignored", "reason": "missing data"}
 
     if len(message_text.strip()) < 1:
+        print("⏭️ Webhook ignorado: empty message")
         return {"status": "ignored", "reason": "empty message"}
 
     if is_duplicate(lead_id, message_text):
         print(f"⏭️ Webhook duplicado ignorado (lead {lead_id})")
         return {"status": "ignored", "reason": "duplicate webhook"}
-
-    if not get_switch_status(lead_id):
-        print(f"🔴 Switch IA DESACTIVADO para lead {lead_id}")
-        return {"status": "ignored", "reason": "AI switch off"}
 
     print(f"📩 Webhook recibido de Kommo!")
     print(f"💬 Mensaje: '{message_text[:50]}...' | Lead ID: {lead_id}")

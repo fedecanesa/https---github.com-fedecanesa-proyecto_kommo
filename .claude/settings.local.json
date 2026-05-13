@@ -4,7 +4,11 @@
       "Bash(conda create:*)",
       "Bash(/opt/anaconda3/envs/LlamaIndex-Proyecto-Kommo/bin/pip install:*)",
       "Bash(/opt/anaconda3/envs/LlamaIndex-Proyecto-Kommo/bin/python3 support_tools/get_pipelines.py)",
-      "Bash(/opt/anaconda3/envs/LlamaIndex-Proyecto-Kommo/bin/python3 support_tools/get_custom_fields.py)"
+      "Bash(/opt/anaconda3/envs/LlamaIndex-Proyecto-Kommo/bin/python3 support_tools/get_custom_fields.py)",
+      "Bash(curl -s -X POST https://mnc7z1gw-8000.brs.devtunnels.ms/webhook/kommo -H 'Content-Type: application/x-www-form-urlencoded' -d 'message%5Badd%5D%5B0%5D%5Btext%5D=Hola%2C%20quiero%20saber%20m%C3%A1s%20sobre%20CogniBoost&message%5Badd%5D%5B0%5D%5Belement_id%5D=99998&message%5Badd%5D%5B0%5D%5Btype%5D=incoming&message%5Badd%5D%5B0%5D%5Bauthor%5D%5Btype%5D=contact&message%5Badd%5D%5B0%5D%5Bchat_id%5D=chat001')",
+      "Bash(curl -s -X POST https://mnc7z1gw-8000.brs.devtunnels.ms/webhook/kommo -H 'Content-Type: application/x-www-form-urlencoded' -d 'message%5Badd%5D%5B0%5D%5Btext%5D=Hola%2C%20quiero%20saber%20m%C3%A1s%20sobre%20CogniBoost&message%5Badd%5D%5B0%5D%5Belement_id%5D=2411104&message%5Badd%5D%5B0%5D%5Btype%5D=incoming&message%5Badd%5D%5B0%5D%5Bauthor%5D%5Btype%5D=external&message%5Badd%5D%5B0%5D%5Bchat_id%5D=b876deb1-361c-4283-8e60-018485d11b42')",
+      "Bash(python support_tools/get_pipelines.py)",
+      "PowerShell($env:PYTHONUTF8 = \"1\"; cd \"c:\\\\Users\\\\Federico\\\\Desktop\\\\datapath\\\\4. LLamaIndex y LlamaCloud - RAG\\\\Sesion 2 -  Taller de Sistemas Multiagente con Llama Index\\\\Aula-2-Parte-1-Proyecto_kommo-2026\"; python support_tools/get_pipelines.py 2>&1)"
     ]
   }
 }

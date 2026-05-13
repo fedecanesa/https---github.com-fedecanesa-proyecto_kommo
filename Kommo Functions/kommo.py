@@ -36,9 +36,19 @@ def get_switch_status(lead_id: int) -> bool:
     }
     
     response = requests.get(url, headers=headers)
-    
+
     if response.status_code != 200:
-        print(f"❌ Error obteniendo lead: {response.status_code}")
+        # En algunos eventos de chat (p.ej. Facebook) Kommo puede no devolver
+        # el lead en este endpoint aunque el webhook sea valido.
+        # Para no cortar la automatizacion, en 204/404 dejamos pasar.
+        if response.status_code in (204, 404):
+            print(
+                f"⚠️ Lead {lead_id} no disponible para leer switch "
+                f"(HTTP {response.status_code}) -> CONTINUA por defecto"
+            )
+            return True
+
+        print(f"❌ Error obteniendo lead {lead_id}: {response.status_code}")
         return False
     
     lead_data = response.json()

@@ -39,7 +39,7 @@ def move_lead_to_Discusion_de_Contrato(lead_id: int) -> bool:
     response = requests.patch(url, headers=headers, json=payload)
 
     if response.status_code == 200:
-        print(f"🔀 Lead {lead_id} movido a 'Discussão de contrato' (status {STATUS_ID})")
+        print(f"🔀 Lead {lead_id} movido a 'Discusión de contrato' (status {status_id})")
         return True
     else:
         print(f"❌ Error moviendo lead a Discussão de contrato: {response.status_code}")

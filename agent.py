@@ -5,6 +5,7 @@ from tools.retrieval import get_index, get_retrieval_tool
 
 INTEREST_TAG = "[INTERESADO]"
 CONTRACT_TAG = "[CONTRATO]"
+CLOSED_TAG = "[CERRADO]"
 MARCA_PATTERN = re.compile(r"\[MARCA:(.+?)\]")
 PAGO_PATTERN = re.compile(r"\[PAGO:(.+?)\]")
 
@@ -35,11 +36,15 @@ ETIQUETAS (agrega al FINAL de tu respuesta las que apliquen):
    financiamiento, métodos de envío, lugar de recogida, plazos de entrega, garantías,
    condiciones del contrato, o cualquier detalle logístico/contractual de la transacción.
 
-3. [MARCA:nombre_del_producto] → Cuando el cliente mencione o pregunte por un producto
+3. [CERRADO] → El cliente confirma explícitamente que quiere cerrar la compra: dice "sí, lo compro",
+   "quiero proceder", "confirmado", "adelante con el pedido", etc.
+   Solo cuando hay confirmación REAL de compra, no por intención previa.
+
+4. [MARCA:nombre_del_producto] → Cuando el cliente mencione o pregunte por un producto
    específico con interés de compra, agrega esta etiqueta con el nombre exacto del producto.
    Ejemplo: [MARCA:VitaCalm], [MARCA:CogniBoost], [MARCA:JointFlex]
 
-4. [PAGO:método] → Cuando el cliente indique cómo quiere pagar o pregunte por un método
+5. [PAGO:método] → Cuando el cliente indique cómo quiere pagar o pregunte por un método
    de pago concreto, agrega esta etiqueta con el método mencionado.
    Ejemplo: [PAGO:tarjeta de crédito], [PAGO:transferencia], [PAGO:efectivo]
 
@@ -72,6 +77,7 @@ async def ask_agent(llm, retrieval_tool, message_text: str, history_str: str) ->
 
 def parse_and_clean_tags(response_text: str) -> dict:
     """Extrae los tags de la respuesta de IA y devuelve la respuesta limpia + datos extraídos."""
+    is_closed = CLOSED_TAG in response_text
     is_contract = CONTRACT_TAG in response_text
     is_interested = INTEREST_TAG in response_text
 
@@ -82,6 +88,7 @@ def parse_and_clean_tags(response_text: str) -> dict:
     pago = pago_match.group(1).strip() if pago_match else None
 
     clean = response_text
+    clean = clean.replace(CLOSED_TAG, "")
     clean = clean.replace(CONTRACT_TAG, "")
     clean = clean.replace(INTEREST_TAG, "")
     clean = MARCA_PATTERN.sub("", clean)
@@ -90,6 +97,7 @@ def parse_and_clean_tags(response_text: str) -> dict:
 
     return {
         "clean_response": clean,
+        "is_closed": is_closed,
         "is_interested": is_interested,
         "is_contract": is_contract,
         "marca": marca,

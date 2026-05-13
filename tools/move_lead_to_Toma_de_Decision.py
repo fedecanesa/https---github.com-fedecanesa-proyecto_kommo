@@ -38,7 +38,7 @@ def move_lead_to_Toma_de_Decision(lead_id: int) -> bool:
     response = requests.patch(url, headers=headers, json=payload)
 
     if response.status_code == 200:
-        print(f"🔀 Lead {lead_id} movido a 'Tomada de decisão' (status {STATUS_ID})")
+        print(f"🔀 Lead {lead_id} movido a 'Negociación' (status {status_id})")
         return True
     else:
         print(f"❌ Error moviendo lead a Tomada de decisão: {response.status_code}")
